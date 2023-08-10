@@ -17,3 +17,5 @@ logits_per_image = outputs.logits_per_image # this is the image-text similarity 
 probs = logits_per_image.softmax(dim=1) # we can take the softmax to get the label probabilities
 
 print(labels[probs.argmax().item()])
+
+
