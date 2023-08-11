@@ -2,7 +2,7 @@ import os
 import random
 import shutil
 
-data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset'
+data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\Train'
 
 positive_pairs_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\positive_pairs'
 negative_pairs_dir = 'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\\negative_pairs'

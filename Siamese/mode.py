@@ -75,7 +75,15 @@ for pair_dir in os.listdir(negative_pairs_dir):
     labels.append(label)
 
 # Convert images and labels to arrays
-image_pairs = np.array(image_pairs)
+image_pairs_array = []
+
+for pair in image_pairs:
+    img1_array = img_to_array(pair[0])
+    img2_array = img_to_array(pair[1])
+
+    image_pairs_array.append((img1_array, img2_array))
+
+image_pairs = np.array(image_pairs_array)
 labels = np.array(labels)
 
 # Define a custom generator to generate batches of pairs and labels
@@ -112,7 +120,7 @@ image_size = (224, 224)
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', tf.keras.metrics.Precision() , tf.keras.metrics.Recall()])
 
 early_stopping_cb = tf.keras.callbacks.EarlyStopping(patience = 10,restore_best_weights = True)
-mc =tf.keras.callbacks.ModelCheckpoint('BaselineSiamese.h5', save_best_only=True)
+mc = tf.keras.callbacks.ModelCheckpoint('BaselineSiamese.h5', save_best_only=True)
 
 class CustomCallBack(tf.keras.callbacks.Callback):
         def on_epoch_end(self,epoch,logs={}):
