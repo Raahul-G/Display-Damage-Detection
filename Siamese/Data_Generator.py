@@ -3,12 +3,16 @@ import random
 import shutil
 
 data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset'
-positive_pairs_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\positive_pairs'
 
-# Create the directory for positive pairs if it doesn't exist
+positive_pairs_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\positive_pairs'
+negative_pairs_dir = 'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\\negative_pairs'
+
+# Create the directory for positive pairs & negative pairs if it doesn't exist
 os.makedirs(positive_pairs_dir, exist_ok=True)
+os.makedirs(negative_pairs_dir, exist_ok=True)
 
 broken_images = os.listdir(os.path.join(data_dir, "Broken"))
+normal_images = os.listdir(os.path.join(data_dir, "Normal"))
 
 for i in range(len(broken_images)):
     img1 = broken_images[i]
@@ -23,12 +27,9 @@ for i in range(len(broken_images)):
     shutil.copy(img1_path, os.path.join(new_pair_dir, "image1.jpg"))
     shutil.copy(img2_path, os.path.join(new_pair_dir, "image2.jpg"))
 
-negative_pairs_dir = 'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\\negative_pairs'
+    with open(os.path.join(new_pair_dir, "label.txt"), "w") as f:
+        f.write("1")
 
-# Create the directory for negative pairs if it doesn't exist
-os.makedirs(negative_pairs_dir, exist_ok=True)
-
-normal_images = os.listdir(os.path.join(data_dir, "Normal"))
 
 for i in range(len(broken_images)):
     img1 = broken_images[i]
@@ -42,3 +43,6 @@ for i in range(len(broken_images)):
 
     shutil.copy(img1_path, os.path.join(new_pair_dir, "image1.jpg"))
     shutil.copy(img2_path, os.path.join(new_pair_dir, "image2.jpg"))
+
+    with open(os.path.join(new_pair_dir, "label.txt"), "w") as f:
+        f.write("0")
