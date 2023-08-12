@@ -2,8 +2,8 @@ import albumentations as A
 import cv2
 import os
 
-data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\Train'
-#data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\Valid'
+# data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\Train'
+data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\Valid'
 
 
 transforms = A.Compose([

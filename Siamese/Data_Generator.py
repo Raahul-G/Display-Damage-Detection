@@ -1,6 +1,7 @@
 import os
 import random
 import shutil
+import cv2
 
 data_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\Train'
 
@@ -14,6 +15,17 @@ os.makedirs(negative_pairs_dir, exist_ok=True)
 broken_images = os.listdir(os.path.join(data_dir, "Broken"))
 normal_images = os.listdir(os.path.join(data_dir, "Normal"))
 
+# Define the target size for resizing
+target_size = (224, 224)
+
+
+def resize_and_save(source_path, destination_folder, filename):
+    image = cv2.imread(source_path)
+    resized_image = cv2.resize(image, target_size, interpolation=cv2.INTER_LINEAR)
+    new_image_path = os.path.join(destination_folder, filename)
+    cv2.imwrite(new_image_path, resized_image)
+
+
 for i in range(len(broken_images)):
     img1 = broken_images[i]
     img2 = random.choice(broken_images)
@@ -24,12 +36,12 @@ for i in range(len(broken_images)):
     new_pair_dir = os.path.join(positive_pairs_dir, f"pair_{i}")
     os.makedirs(new_pair_dir, exist_ok=True)
 
-    shutil.copy(img1_path, os.path.join(new_pair_dir, "image1.jpg"))
-    shutil.copy(img2_path, os.path.join(new_pair_dir, "image2.jpg"))
+    # Resize and save images in the pair directory
+    resize_and_save(img1_path, new_pair_dir, "image1.jpg")
+    resize_and_save(img2_path, new_pair_dir, "image2.jpg")
 
     with open(os.path.join(new_pair_dir, "label.txt"), "w") as f:
         f.write("1")
-
 
 for i in range(len(broken_images)):
     img1 = broken_images[i]
@@ -41,8 +53,9 @@ for i in range(len(broken_images)):
     new_pair_dir = os.path.join(negative_pairs_dir, f"pair_{i}")
     os.makedirs(new_pair_dir, exist_ok=True)
 
-    shutil.copy(img1_path, os.path.join(new_pair_dir, "image1.jpg"))
-    shutil.copy(img2_path, os.path.join(new_pair_dir, "image2.jpg"))
+    # Resize and save images in the pair directory
+    resize_and_save(img1_path, new_pair_dir, "image1.jpg")
+    resize_and_save(img2_path, new_pair_dir, "image2.jpg")
 
     with open(os.path.join(new_pair_dir, "label.txt"), "w") as f:
         f.write("0")
