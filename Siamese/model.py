@@ -1,147 +1,149 @@
 import tensorflow as tf
-from keras.utils import img_to_array, load_img
-from keras.layers import Input, Flatten, Dense, Dropout, Lambda
-from keras.models import Model
-from keras.optimizers import Adam
-from keras.applications.vgg16 import VGG16
+import numpy as np
 import os
+from keras.utils import load_img, img_to_array
+from keras.layers import Input, Conv2D, Flatten, Dense
+from keras.models import Model
+from keras import backend as K
+import matplotlib.pyplot as plt
 
-# Define paths to your positive_pairs and negative_pairs directories
 positive_pairs_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\positive_pairs'
-negative_pairs_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\negative_pairs'
+negative_pairs_dir = r'C:\FV_2.0\Projects\Display-Damage-Detection\Dataset\\negative_pairs'
 
-# Function to encode image and label into a tf.Example
-def _bytes_feature(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+K.clear_session()
 
-def _int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+image_pairs = []
+labels = []
 
-# Create a TFRecord writer
-tfrecord_filename = "siamese.tfrecords"
-writer = tf.io.TFRecordWriter(tfrecord_filename)
-
-# Load and process image pairs and labels
 for pair_dir in os.listdir(positive_pairs_dir):
-    img1 = img_to_array(load_img(os.path.join(positive_pairs_dir, pair_dir, "image1.jpg")))
-    img2 = img_to_array(load_img(os.path.join(positive_pairs_dir, pair_dir, "image2.jpg")))
+
+    img1 = img_to_array(load_img(os.path.join(positive_pairs_dir, pair_dir, "image1.jpg"))) / 255.0
+    img2 = img_to_array(load_img(os.path.join(positive_pairs_dir, pair_dir, "image2.jpg"))) / 255.0
+    label_path = os.path.join(positive_pairs_dir, pair_dir, "label.txt")
+
+
+    with open(label_path, "r") as f:
+        label = int(f.read())
+
+    image_pairs.append((img1, img2))
+    labels.append(label)
+for pair_dir in os.listdir(negative_pairs_dir):
+
+    img1 = img_to_array(load_img(os.path.join(positive_pairs_dir, pair_dir, "image1.jpg"))) / 255.0
+    img2 = img_to_array(load_img(os.path.join(positive_pairs_dir, pair_dir, "image2.jpg"))) / 255.0
     label_path = os.path.join(positive_pairs_dir, pair_dir, "label.txt")
 
     with open(label_path, "r") as f:
         label = int(f.read())
 
-    # Serialize images and label into a tf.Example
-    feature = {
-        'image1': _bytes_feature(img1.tobytes()),
-        'image2': _bytes_feature(img2.tobytes()),
-        'label': _int64_feature(label)
-    }
+    image_pairs.append((img1, img2))
+    labels.append(label)
 
-    example = tf.train.Example(features=tf.train.Features(feature=feature))
-
-    # Write the serialized example to the TFRecord file
-    writer.write(example.SerializeToString())
-
-for pair_dir in os.listdir(negative_pairs_dir):
-    img1 = img_to_array(load_img(os.path.join(negative_pairs_dir, pair_dir, "image1.jpg")))
-    img2 = img_to_array(load_img(os.path.join(negative_pairs_dir, pair_dir, "image2.jpg")))
-    label_path = os.path.join(negative_pairs_dir, pair_dir, "label.txt")
-
-    with open(label_path, "r") as f:
-        label = int(f.read())
-
-    # Serialize images and label into a tf.Example
-    feature = {
-        'image1': _bytes_feature(img1.tobytes()),
-        'image2': _bytes_feature(img2.tobytes()),
-        'label': _int64_feature(label)
-    }
-
-    example = tf.train.Example(features=tf.train.Features(feature=feature))
-
-    # Write the serialized example to the TFRecord file
-    writer.write(example.SerializeToString())
-
-# Close the TFRecord writer
-writer.close()
-
-# Function to parse the serialized examples from the TFRecords
-def parse_example(example):
-    feature_description = {
-        'image1': tf.io.FixedLenFeature([], tf.string),
-        'image2': tf.io.FixedLenFeature([], tf.string),
-        'label': tf.io.FixedLenFeature([], tf.int64),
-    }
-    parsed_example = tf.io.parse_single_example(example, feature_description)
-
-    image1 = tf.io.decode_raw(parsed_example['image1'], tf.uint8)
-    image2 = tf.io.decode_raw(parsed_example['image2'], tf.uint8)
-    label = parsed_example['label']
-
-    print("Decoded Image 1 shape:", image1.shape)
-    print("Decoded Image 2 shape:", image2.shape)
-
-    # Reshape and normalize images
-    image1 = tf.reshape(image1, (224, 224, 3))
-    image1 = tf.cast(image1, tf.float32) / 255.0
-
-    image2 = tf.reshape(image2, (224, 224, 3))
-    image2 = tf.cast(image2, tf.float32) / 255.0
-
-    print("Decoded Image 1 shape after reshape :", image1.shape)
-    print("Decoded Image 2 shape after reshape :", image2.shape)
-
-    return {'left_input': image1, 'right_input': image2}, label
-
-# Create a TFRecord dataset
-tfrecord_filename = r'C:\FV_2.0\Projects\Display-Damage-Detection\Siamese\siamese.tfrecords'
-dataset = tf.data.TFRecordDataset(tfrecord_filename)
-dataset = dataset.map(parse_example)
-
-# Define the base network
-def initialize_base_network():
-    VGG = VGG16(include_top=False, weights="imagenet", input_shape=(224, 224, 3))
-    for layer in VGG.layers:
-        layer.trainable = False
-
-    last_layer = VGG.get_layer('block5_pool')
-    last_output = last_layer.output
-
-    x = Flatten(name="flatten_input")(last_output)
-    x = Dense(512, activation='relu', name="first_base_dense")(x)
-    x = Dropout(0.1, name="first_dropout")(x)
-    x = Dense(256, activation='relu', name="second_base_dense")(x)
-    x = Dropout(0.1, name="second_dropout")(x)
-    output = Dense(128, activation='relu', name="third_base_dense")(x)
-    model = Model(inputs=VGG.input, outputs=output)
-
-    return model
-
-base_network = initialize_base_network()
+image_pairs = np.array(image_pairs)
+labels = np.array(labels).reshape((len(labels), 1))
 
 
-# Define the Siamese model
-input_shape = (224, 224, 3)  # Define the input shape consistent with your base network
-input_a = Input(shape=input_shape, name="left_input")
-input_b = Input(shape=input_shape, name="right_input")
+left_input = []
+right_input = []
 
-vect_output_a = base_network(input_a)
-vect_output_b = base_network(input_b)
+for pair in image_pairs:
+    left = np.squeeze(pair[0:1, :, :, :])
+    right = np.squeeze(pair[1:2, :, :, :])
 
-L1_layer = Lambda(lambda tensors: tf.abs(tensors[0] - tensors[1]))
-L1_distance = L1_layer([vect_output_a, vect_output_b])
+    left_input.append(left)
+    right_input.append(right)
 
-output = Dense(1, activation='sigmoid', name='OutputLayer')(L1_distance)
+left_input = np.array(left_input)
+right_input = np.array(right_input)
 
-siamese_model = Model(inputs=[input_a, input_b], outputs=output)
+def siamese_generator(left_input, right_input, labels, batch_size):
+    num_samples = left_input.shape[0]
+    while True:
+        indices = np.random.randint(0, num_samples, batch_size)
+        batch_left = left_input[indices]
+        batch_right = right_input[indices]
+        label = labels[indices]
+        yield [batch_left, batch_right], label
 
-# Compile the Siamese model
-siamese_model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+batch_size = 12
 
-# Instantiate the custom generator
-batch_size = 16  # Adjust batch size as needed
+dataset = tf.data.Dataset.from_generator(
+    generator=lambda: siamese_generator(left_input, right_input, labels, batch_size),
+    output_signature=(
+        tf.TensorSpec(shape=(batch_size, 224, 224, 3), dtype=tf.float64, name='left_input'),
+        tf.TensorSpec(shape=(batch_size, 224, 224, 3), dtype=tf.float64, name='right_input'),
+        tf.TensorSpec(shape=(batch_size, 1), dtype=tf.int64, name='label_output'),
+    )
+)
 
-print(siamese_model.summary())
+generator = siamese_generator(left_input, right_input, labels, batch_size)
 
-# Train the Siamese model using the generator
-model_history = siamese_model.fit(dataset.batch(batch_size), epochs=10)
+num_batches = int(np.ceil(len(left_input) / batch_size))
+
+def build_siamese_model(input_shape):
+    # Shared subnetwork
+    input_left = Input(shape=input_shape, name="left_input")
+    input_right = Input(shape=input_shape, name="right_input")
+
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same', name='Conv_1')
+    flatten = Flatten(name='Flat_1')
+    dense1 = Dense(128, activation='relu', name='Dense_1')
+
+    encoded_left = dense1(flatten(conv1(input_left)))
+    encoded_right = dense1(flatten(conv1(input_right)))
+
+    # Merge the two encoded outputs
+    merged_vector = tf.keras.layers.Subtract()([encoded_left, encoded_right])
+    prediction = Dense(1, activation='sigmoid', name='Output')(merged_vector)
+
+    siamese_model = Model(inputs=[input_left, input_right], outputs=prediction)
+
+    return siamese_model
+
+input_shape = (224, 224, 3)
+
+model = build_siamese_model(input_shape)
+# model.summary()
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', tf.keras.metrics.Precision() , tf.keras.metrics.Recall()])
+
+class CustomCallBack(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs={}):
+        if (logs.get('accuracy') > 0.99):
+            print("\nReached 99.0% accuracy so cancelling training!")
+            self.model.stop_training = True
+
+mycallback = CustomCallBack()
+
+model_history = model.fit(generator,
+                          steps_per_epoch=num_batches,
+                          epochs=20,
+                          callbacks= [mycallback])
+
+model.save_weights("model.h5")
+
+# def plot_history(history):
+#     accuracy = history.history['accuracy']
+#     loss = history.history['loss']
+#
+#     plt.figure(figsize=(10, 5))
+#     plt.subplot(1, 2, 1)
+#     plt.plot(accuracy, label='Training Accuracy')
+#     plt.title('Training  Accuracy')
+#     plt.xlabel('Epochs')
+#     plt.ylabel('Accuracy')
+#     plt.legend()
+#     plt.grid()
+#
+#     plt.subplot(1, 2, 2)
+#     plt.plot(loss, label='Training Loss')
+#     plt.title('Training Loss')
+#     plt.xlabel('Epochs')
+#     plt.ylabel('Loss')
+#     plt.legend()
+#     plt.grid()
+#
+#     plt.tight_layout()
+#     plt.show()
+
+# plot_history(model_history)
