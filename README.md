@@ -12,10 +12,10 @@ The objective of this readme is to outline various approaches and considerations
 - Reasons for not choosing:
   1. Only works when the screen is off.
   2. No reflections on the screen should be present.
-  3. Limitations of Canny algorithm.
+  3. Limitations of the Canny algorithm.
   4. Sensitivity to slight pixel differences.
 
-### Approach 2: CLIP Model - Zero Shot Image Classification
+### Approach 2: CLIP Model - Zero-Shot Image Classification
 
 The CLIP model by OpenAI is a promising option for image classification.
 
@@ -39,14 +39,14 @@ The CLIP model by OpenAI is a promising option for image classification.
 Transfer learning with VGG16 for binary classification.
 
 - Utilizes pre-trained VGG16 model.
-- Reuses lower-level features, fine-tunes top layers.
+- Reuses lower-level features, and fine-tunes top layers.
 - Beneficial for small datasets or related tasks.
-- Reduces overfitting, speeds up convergence.
+- Reduces overfitting, and speeds up convergence.
 
 Custom Dataset Generation
 
-- Researched data sources, decided to create a custom dataset.
-- Used Canva, Google images, and mobile camera.
+- Researched data sources, and decided to create a custom dataset.
+- Used Canva, Google Images, and mobile camera.
 - Generated images of normal and broken displays.
 - Applied augmentation techniques.
 - **Shortcomings**: No testing data for inference.
@@ -69,11 +69,7 @@ Siamese model for pairwise image comparison tasks.
 - Compares image pairs for tasks like face recognition.
 - **Shortcomings**:
   1. Memory allocation issues with custom image generators.
-  2. Shifted to TF.Records for simplicity.
-- **Status**:
-  1. Encountered Graph execution error.
-  2. Model not yet trained.
-  3. Ongoing work on the model.
+  2. Reduce the image size before the custom image generators to avoid the issue
 
 ---
 
