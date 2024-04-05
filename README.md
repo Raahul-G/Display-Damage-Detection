@@ -1,10 +1,10 @@
 # Display-Damage-Detection
 
-## Objective:
+## Objective
 
 The objective of this readme is to outline various approaches and considerations for building a Python program to determine if a screen is damaged or not using image classification techniques.
 
-## Approach:
+## Approach
 
 ### Approach 1: Edge Detection without Machine Learning
 
